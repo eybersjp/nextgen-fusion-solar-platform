@@ -1,10 +1,12 @@
 """Database management for the Design Service.
 
-Provides SQLAlchemy session management, connection pooling,
-health checks, and database utilities.
+Provides SQLAlchemy session management, enhanced connection pooling,
+health checks, multi-tenant support, and database utilities.
 """
 
 import asyncio
+import sys
+import os
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
 from typing import Any, Dict, Generator, Optional
@@ -23,6 +25,18 @@ from sqlalchemy.exc import SQLAlchemyError, DisconnectionError
 from sqlalchemy.engine import Engine
 from alembic import command
 from alembic.config import Config
+
+# Add shared module to path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'shared'))
+
+try:
+    from database import (
+        ServiceType, ServiceDatabaseManager, 
+        get_service_db_manager, initialize_service_database
+    )
+    ENHANCED_POOLING_AVAILABLE = True
+except ImportError:
+    ENHANCED_POOLING_AVAILABLE = False
 
 from .config import get_settings
 from .logging import get_logger
@@ -51,135 +65,218 @@ def get_database_url(async_mode: bool = False) -> str:
 
 
 def create_database_engine(
-    database_url: str = None,
+    database_url: Optional[str] = None,
     echo: bool = False,
     pool_size: int = 10,
     max_overflow: int = 20,
     pool_timeout: int = 30,
     pool_recycle: int = 3600
 ) -> Engine:
-    """Create SQLAlchemy engine with connection pooling."""
+    """Create and configure the main database engine."""
     settings = get_settings()
     
     if not database_url:
-        database_url = get_database_url()
+        database_url = settings.DATABASE_URL
     
-    # Set connect_args based on database type
-    connect_args = {}
-    if "postgresql" in database_url:
-        connect_args = {
-            "connect_timeout": 10,
-            "application_name": "design_service"
-        }
-    elif "sqlite" in database_url:
-        connect_args = {
-            "check_same_thread": False
-        }
+    # Determine if we're using SQLite
+    is_sqlite = database_url.startswith('sqlite')
     
-    engine = create_engine(
-        database_url,
-        echo=echo or settings.DATABASE_ECHO,
-        poolclass=QueuePool,
-        pool_size=pool_size,
-        max_overflow=max_overflow,
-        pool_timeout=pool_timeout,
-        pool_recycle=pool_recycle,
-        pool_pre_ping=True,  # Validate connections before use
-        connect_args=connect_args
-    )
+    if is_sqlite:
+        # SQLite configuration
+        engine = create_engine(
+            database_url,
+            echo=echo,
+            poolclass=pool.StaticPool,
+            connect_args={
+                "check_same_thread": False,
+                "timeout": 20
+            },
+            pool_pre_ping=True
+        )
+    else:
+        # PostgreSQL/other database configuration
+        engine = create_engine(
+            database_url,
+            echo=echo,
+            poolclass=QueuePool,
+            pool_size=pool_size,
+            max_overflow=max_overflow,
+            pool_timeout=pool_timeout,
+            pool_recycle=pool_recycle,
+            pool_pre_ping=True
+        )
     
     # Add event listeners
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_connection, connection_record):
-        """Set SQLite pragmas for better performance."""
-        if "sqlite" in database_url:
+    if is_sqlite:
+        @event.listens_for(engine, "connect")
+        def set_sqlite_pragma(dbapi_connection, connection_record):
+            """Set SQLite pragmas for better performance and reliability."""
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
             cursor.execute("PRAGMA journal_mode=WAL")
             cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA cache_size=10000")
+            cursor.execute("PRAGMA temp_store=MEMORY")
             cursor.close()
     
-    @event.listens_for(engine, "checkout")
-    def receive_checkout(dbapi_connection, connection_record, connection_proxy):
-        """Log connection checkout."""
-        logger.debug("Database connection checked out")
+    @event.listens_for(engine, "connect")
+    def log_connection(dbapi_connection, connection_record):
+        """Log database connections."""
+        logger.debug(f"Database connection established: {id(dbapi_connection)}")
     
-    @event.listens_for(engine, "checkin")
-    def receive_checkin(dbapi_connection, connection_record):
-        """Log connection checkin."""
-        logger.debug("Database connection checked in")
+    @event.listens_for(engine, "close")
+    def log_disconnection(dbapi_connection, connection_record):
+        """Log database disconnections."""
+        logger.debug(f"Database connection closed: {id(dbapi_connection)}")
     
     return engine
 
 
 def create_async_database_engine(
-    database_url: str = None,
+    database_url: Optional[str] = None,
     echo: bool = False,
     pool_size: int = 10,
     max_overflow: int = 20,
     pool_timeout: int = 30,
     pool_recycle: int = 3600
 ):
-    """Create async SQLAlchemy engine."""
+    """Create and configure the async database engine."""
     settings = get_settings()
     
     if not database_url:
-        database_url = get_database_url(async_mode=True)
+        database_url = settings.DATABASE_URL
     
-    # For SQLite async, we don't use connection pooling
-    if "sqlite" in database_url:
+    # Convert sync URL to async URL
+    if database_url.startswith('postgresql://'):
+        database_url = database_url.replace('postgresql://', 'postgresql+asyncpg://', 1)
+    elif database_url.startswith('sqlite:///'):
+        database_url = database_url.replace('sqlite:///', 'sqlite+aiosqlite:///', 1)
+    
+    # Determine if we're using SQLite
+    is_sqlite = 'sqlite' in database_url
+    
+    if is_sqlite:
+        # SQLite doesn't support connection pooling in the traditional sense
         engine = create_async_engine(
             database_url,
-            echo=echo or settings.DATABASE_ECHO,
-            poolclass=pool.NullPool
+            echo=echo,
+            poolclass=pool.NullPool,  # No pooling for SQLite
+            connect_args={"check_same_thread": False}
         )
     else:
+        # PostgreSQL configuration with connection pooling
         engine = create_async_engine(
             database_url,
-            echo=echo or settings.DATABASE_ECHO,
+            echo=echo,
             pool_size=pool_size,
             max_overflow=max_overflow,
             pool_timeout=pool_timeout,
             pool_recycle=pool_recycle,
-            pool_pre_ping=True,
-            connect_args={
-                "server_settings": {
-                    "application_name": "design_service_async"
-                }
-            }
+            pool_pre_ping=True
         )
     
     return engine
 
 
-def init_database():
-    """Initialize database connections and session factories."""
+def init_database(
+    database_url: Optional[str] = None,
+    echo: bool = False,
+    pool_size: int = 10,
+    max_overflow: int = 20,
+    pool_timeout: int = 30,
+    pool_recycle: int = 3600,
+    tenant_id: Optional[str] = None
+) -> None:
+    """Initialize database engines and session factories.
+    
+    Args:
+        database_url: Database connection URL
+        echo: Enable SQL query logging
+        pool_size: Number of connections to maintain in pool
+        max_overflow: Maximum overflow connections
+        pool_timeout: Timeout for getting connection from pool
+        pool_recycle: Time to recycle connections (seconds)
+        tenant_id: Optional tenant ID for multi-tenant setup
+    """
     global _engine, _async_engine, _session_factory, _async_session_factory
     
+    if not database_url:
+        settings = get_settings()
+        database_url = settings.DATABASE_URL
+    
+    logger.info(f"Initializing database with URL: {database_url[:50]}...")
+    
     try:
-        # Create sync engine
-        _engine = create_database_engine()
-        _session_factory = sessionmaker(
-            bind=_engine,
-            autocommit=False,
-            autoflush=False,
-            expire_on_commit=False
-        )
+        # Use enhanced pooling if available
+        if ENHANCED_POOLING_AVAILABLE:
+            logger.info("Using enhanced connection pooling system")
+            
+            # Initialize service database manager
+            manager = initialize_service_database(
+                service_type=ServiceType.DESIGN
+            )
+            
+            # Get engines for tenant
+            _engine = manager.get_engine(tenant_id)
+            _async_engine = manager.get_async_engine(tenant_id)
+            
+            # Create session factories
+            _session_factory = sessionmaker(
+                bind=_engine,
+                class_=Session,
+                expire_on_commit=False
+            )
+            
+            _async_session_factory = async_sessionmaker(
+                bind=_async_engine,
+                class_=AsyncSession,
+                expire_on_commit=False
+            )
+            
+        else:
+            # Fallback to legacy pooling
+            logger.warning("Enhanced pooling not available, using legacy system")
+            
+            # Create sync engine
+            _engine = create_database_engine(
+                database_url=database_url,
+                echo=echo,
+                pool_size=pool_size,
+                max_overflow=max_overflow,
+                pool_timeout=pool_timeout,
+                pool_recycle=pool_recycle
+            )
+            
+            # Create async engine
+            _async_engine = create_async_database_engine(
+                database_url=database_url,
+                echo=echo,
+                pool_size=pool_size,
+                max_overflow=max_overflow,
+                pool_timeout=pool_timeout,
+                pool_recycle=pool_recycle
+            )
+            
+            # Create session factories
+            _session_factory = sessionmaker(
+                bind=_engine,
+                autocommit=False,
+                autoflush=False,
+                expire_on_commit=False
+            )
+            
+            _async_session_factory = async_sessionmaker(
+                bind=_async_engine,
+                class_=AsyncSession,
+                autocommit=False,
+                autoflush=False,
+                expire_on_commit=False
+            )
         
-        # Create async engine
-        _async_engine = create_async_database_engine()
-        _async_session_factory = async_sessionmaker(
-            bind=_async_engine,
-            class_=AsyncSession,
-            autocommit=False,
-            autoflush=False,
-            expire_on_commit=False
-        )
-        
-        logger.info("Database connections initialized")
+        logger.info("Database initialization completed successfully")
         
     except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
+        logger.error(f"Database initialization failed: {e}")
         raise
 
 
@@ -212,10 +309,23 @@ def get_async_session_factory():
 
 
 @contextmanager
-def get_db_session() -> Generator[Session, None, None]:
-    """Get database session with automatic cleanup."""
-    session_factory = get_session_factory()
-    session = session_factory()
+def get_db_session(tenant_id: Optional[str] = None) -> Generator[Session, None, None]:
+    """Get a database session with automatic cleanup.
+    
+    Args:
+        tenant_id: Optional tenant ID for multi-tenant setup
+    
+    Usage:
+        with get_db_session() as session:
+            # Use session here
+            pass
+    """
+    if ENHANCED_POOLING_AVAILABLE and tenant_id:
+        manager = get_service_db_manager()
+        session = manager.get_session(tenant_id)
+    else:
+        session_factory = get_session_factory()
+        session = session_factory()
     
     try:
         yield session
@@ -228,26 +338,40 @@ def get_db_session() -> Generator[Session, None, None]:
         session.close()
 
 
-def get_db() -> Generator[Session, None, None]:
-    """FastAPI dependency for database session."""
-    session_factory = get_session_factory()
-    session = session_factory()
+def get_db(tenant_id: Optional[str] = None) -> Generator[Session, None, None]:
+    """FastAPI dependency for database sessions.
     
-    try:
+    Args:
+        tenant_id: Optional tenant ID for multi-tenant setup
+    
+    Usage:
+        @app.get("/items/")
+        def read_items(db: Session = Depends(get_db)):
+            # Use db session here
+            pass
+    """
+    with get_db_session(tenant_id=tenant_id) as session:
         yield session
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Database session error: {e}")
-        raise
-    finally:
-        session.close()
 
 
 @asynccontextmanager
-async def get_async_db_session():
-    """Get async database session with automatic cleanup."""
-    session_factory = get_async_session_factory()
-    session = session_factory()
+async def get_async_db_session(tenant_id: Optional[str] = None):
+    """Get an async database session with automatic cleanup.
+    
+    Args:
+        tenant_id: Optional tenant ID for multi-tenant setup
+    
+    Usage:
+        async with get_async_db_session() as session:
+            # Use session here
+            pass
+    """
+    if ENHANCED_POOLING_AVAILABLE and tenant_id:
+        manager = get_service_db_manager()
+        session = await manager.get_async_session(tenant_id)
+    else:
+        session_factory = get_async_session_factory()
+        session = session_factory()
     
     try:
         yield session

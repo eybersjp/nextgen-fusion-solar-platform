@@ -127,6 +127,10 @@ class PaginationParams(BaseSchema):
         return (self.page - 1) * self.page_size
 
 
+# Alias for backward compatibility
+PaginationSchema = PaginationParams
+
+
 class SortParams(BaseSchema):
     """Sorting parameters schema."""
     

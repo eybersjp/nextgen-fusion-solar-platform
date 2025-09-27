@@ -41,7 +41,14 @@ class ServiceRegistry {
     const serviceConfigs: ServiceConfig[] = [
       {
         name: 'svc-design',
-        urls: [process.env.SVC_DESIGN_URL || 'http://localhost:8001'],
+        urls: [process.env.SVC_DESIGN_URL || 'http://localhost:8000'],
+        healthPath: '/health',
+        timeout: 5000,
+        retries: 3
+      },
+      {
+        name: 'svc-currency',
+        urls: [process.env.SVC_CURRENCY_URL || 'http://localhost:8001'],
         healthPath: '/health',
         timeout: 5000,
         retries: 3
@@ -54,33 +61,41 @@ class ServiceRegistry {
         retries: 3
       },
       {
-        name: 'svc-finance',
-        urls: [process.env.SVC_FINANCE_URL || 'http://localhost:8003'],
-        healthPath: '/health',
-        timeout: 5000,
-        retries: 3
-      },
-      {
-        name: 'svc-procure',
-        urls: [process.env.SVC_PROCURE_URL || 'http://localhost:8004'],
-        healthPath: '/health',
-        timeout: 5000,
-        retries: 3
-      },
-      {
-        name: 'svc-ops',
-        urls: [process.env.SVC_OPS_URL || 'http://localhost:8005'],
-        healthPath: '/health',
-        timeout: 5000,
-        retries: 3
-      },
-      {
-        name: 'svc-support',
-        urls: [process.env.SVC_SUPPORT_URL || 'http://localhost:8006'],
+        name: 'svc-project',
+        urls: [process.env['SVC_PROJECT_URL'] || 'http://localhost:8003'],
         healthPath: '/health',
         timeout: 5000,
         retries: 3
       }
+      // Future services will be added as they are implemented
+      // {
+      //   name: 'svc-finance',
+      //   urls: [process.env.SVC_FINANCE_URL || 'http://localhost:8004'],
+      //   healthPath: '/health',
+      //   timeout: 5000,
+      //   retries: 3
+      // },
+      // {
+      //   name: 'svc-procure',
+      //   urls: [process.env.SVC_PROCURE_URL || 'http://localhost:8005'],
+      //   healthPath: '/health',
+      //   timeout: 5000,
+      //   retries: 3
+      // },
+      // {
+      //   name: 'svc-ops',
+      //   urls: [process.env.SVC_OPS_URL || 'http://localhost:8006'],
+      //   healthPath: '/health',
+      //   timeout: 5000,
+      //   retries: 3
+      // },
+      // {
+      //   name: 'svc-support',
+      //   urls: [process.env.SVC_SUPPORT_URL || 'http://localhost:8007'],
+      //   healthPath: '/health',
+      //   timeout: 5000,
+      //   retries: 3
+      // }
     ];
 
     serviceConfigs.forEach(config => {
@@ -120,12 +135,23 @@ class ServiceRegistry {
     if (healthyEndpoints.length === 0) {
       logger.warn(`No healthy endpoints found for service ${serviceName}`);
       // Return first endpoint as fallback
-      return endpoints[0];
+      return endpoints[0] || null;
     }
 
     // Simple round-robin load balancing
     const randomIndex = Math.floor(Math.random() * healthyEndpoints.length);
-    return healthyEndpoints[randomIndex];
+    return healthyEndpoints[randomIndex] || null;
+  }
+
+  /**
+   * Get service URL for proxying
+   */
+  getServiceUrl(serviceName: string): string {
+    const endpoint = this.getServiceEndpoint(serviceName);
+    if (!endpoint) {
+      throw new Error(`Service ${serviceName} not available`);
+    }
+    return endpoint.url;
   }
 
   /**
@@ -212,7 +238,7 @@ class ServiceRegistry {
   private async checkEndpointHealth(endpoint: ServiceEndpoint): Promise<void> {
     try {
       const controller = new AbortController();
-      const timeout = endpoint.metadata?.timeout || 5000;
+      const timeout = endpoint.metadata?.['timeout'] || 5000;
       
       const timeoutId = setTimeout(() => controller.abort(), timeout);
       

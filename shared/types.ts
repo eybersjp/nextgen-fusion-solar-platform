@@ -109,6 +109,59 @@ export interface ModuleLayout {
   shading_factor?: number;
 }
 
+export interface InverterLayout {
+  id: string;
+  inverter_type_id: string;
+  position: Position3D;
+  dc_inputs: string[];
+  ac_output_id: string;
+}
+
+export interface DCCombinerLayout {
+  id: string;
+  position: Position3D;
+  inputs: string[];
+  output_id: string;
+}
+
+export interface ACDisconnectLayout {
+  id: string;
+  position: Position3D;
+  type: 'main' | 'emergency';
+}
+
+export interface MeterLocation {
+  position: Position3D;
+  type: 'production' | 'consumption' | 'net';
+}
+
+export interface Setbacks {
+  roof_edge: number;
+  fire_setback: number;
+  walkway_width: number;
+  equipment_access: number;
+}
+
+export interface SensitivityAnalysis {
+  parameters: SensitivityParameter[];
+  results: SensitivityResult[];
+}
+
+export interface SensitivityParameter {
+  name: string;
+  base_value: number;
+  min_value: number;
+  max_value: number;
+  step: number;
+}
+
+export interface SensitivityResult {
+  parameter: string;
+  value: number;
+  npv_impact: number;
+  irr_impact: number;
+}
+
 export interface Position3D {
   x: number;
   y: number;

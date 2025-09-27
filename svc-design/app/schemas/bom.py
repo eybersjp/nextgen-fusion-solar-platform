@@ -1225,6 +1225,12 @@ class BOMListResponse(BaseSchema):
     sort_order: Optional[str] = Field(None, description="Sort order (asc/desc)")
 
 
+# Aliases for backward compatibility
+BillOfMaterials = BOMResponse
+BOMItem = BOMItemResponse
+CostAnalysis = BOMCostAnalysisResponse
+
+
 class ComponentListResponse(BaseSchema):
     """Schema for component list response."""
     

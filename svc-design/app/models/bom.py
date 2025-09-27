@@ -14,9 +14,11 @@ from sqlalchemy import (
     Boolean, Column, DateTime, Date, Enum, Float, ForeignKey, Integer, 
     String, Text, Numeric, Index
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID
+# from sqlalchemy.dialects.postgresql import ARRAY  # Disabled for SQLite compatibility
+from sqlalchemy import JSON
 from sqlalchemy.orm import relationship, backref
-from geoalchemy2 import Geometry
+# from geoalchemy2 import Geometry  # Disabled for SQLite compatibility
 
 from .base import FullBaseModel
 
@@ -164,16 +166,16 @@ class BillOfMaterials(FullBaseModel):
     
     # Lead times
     estimated_lead_time_days = Column(Integer, doc="Estimated lead time in days")
-    critical_path_items = Column(JSONB, doc="Critical path items")
+    critical_path_items = Column(JSON, doc="Critical path items")
     
     # Delivery and logistics
-    delivery_address = Column(JSONB, doc="Delivery address")
+    delivery_address = Column(JSON, doc="Delivery address")
     delivery_requirements = Column(Text, doc="Special delivery requirements")
     
     # Quality and compliance
-    quality_requirements = Column(JSONB, doc="Quality requirements")
-    compliance_standards = Column(ARRAY(String), doc="Compliance standards")
-    certifications_required = Column(ARRAY(String), doc="Required certifications")
+    quality_requirements = Column(JSON, doc="Quality requirements")
+    compliance_standards = Column(JSON, doc="Compliance standards")
+    certifications_required = Column(JSON, doc="Required certifications")
     
     # Status and approval
     approval_status = Column(
@@ -195,7 +197,7 @@ class BillOfMaterials(FullBaseModel):
         doc="BOM generation method"
     )
     
-    generation_parameters = Column(JSONB, doc="Generation parameters")
+    generation_parameters = Column(JSON, doc="Generation parameters")
     
     # File references
     excel_file_path = Column(String(500), doc="Excel BOM file path")
@@ -342,14 +344,14 @@ class Component(FullBaseModel):
     subcategory = Column(String(100), doc="Component subcategory")
     
     # Technical specifications
-    specifications = Column(JSONB, doc="Technical specifications")
-    electrical_specs = Column(JSONB, doc="Electrical specifications")
-    mechanical_specs = Column(JSONB, doc="Mechanical specifications")
-    environmental_specs = Column(JSONB, doc="Environmental specifications")
+    specifications = Column(JSON, doc="Technical specifications")
+    electrical_specs = Column(JSON, doc="Electrical specifications")
+    mechanical_specs = Column(JSON, doc="Mechanical specifications")
+    environmental_specs = Column(JSON, doc="Environmental specifications")
     
     # Physical properties
     weight_kg = Column(Float, doc="Weight in kg")
-    dimensions = Column(JSONB, doc="Dimensions (length, width, height)")
+    dimensions = Column(JSON, doc="Dimensions (length, width, height)")
     color = Column(String(50), doc="Color")
     material = Column(String(100), doc="Primary material")
     
@@ -360,9 +362,9 @@ class Component(FullBaseModel):
     current_rating_a = Column(Float, doc="Current rating in amperes")
     
     # Certifications and compliance
-    certifications = Column(ARRAY(String), doc="Certifications")
-    standards_compliance = Column(ARRAY(String), doc="Standards compliance")
-    country_approvals = Column(ARRAY(String), doc="Country approvals")
+    certifications = Column(JSON, doc="Certifications")
+    standards_compliance = Column(JSON, doc="Standards compliance")
+    country_approvals = Column(JSON, doc="Country approvals")
     
     # Warranty information
     warranty_years = Column(Integer, doc="Warranty period in years")
@@ -376,7 +378,7 @@ class Component(FullBaseModel):
     
     # Supplier information
     primary_supplier_id = Column(UUID(as_uuid=True), doc="Primary supplier ID")
-    alternative_suppliers = Column(JSONB, doc="Alternative suppliers")
+    alternative_suppliers = Column(JSON, doc="Alternative suppliers")
     
     # Availability
     is_available = Column(Boolean, nullable=False, default=True, doc="Is available")
@@ -447,7 +449,7 @@ class Supplier(FullBaseModel):
     website = Column(String(255), doc="Website URL")
     
     # Address
-    address = Column(JSONB, doc="Address information")
+    address = Column(JSON, doc="Address information")
     country = Column(String(2), doc="Country code")
     timezone = Column(String(50), doc="Timezone")
     
@@ -460,12 +462,12 @@ class Supplier(FullBaseModel):
         doc="Business type"
     )
     
-    industry_focus = Column(ARRAY(String), doc="Industry focus areas")
+    industry_focus = Column(JSON, doc="Industry focus areas")
     
-    # Capabilities
-    product_categories = Column(ARRAY(String), doc="Product categories")
-    services_offered = Column(ARRAY(String), doc="Services offered")
-    geographic_coverage = Column(ARRAY(String), doc="Geographic coverage")
+    # Products and services
+    product_categories = Column(JSON, doc="Product categories")
+    services_offered = Column(JSON, doc="Services offered")
+    geographic_coverage = Column(JSON, doc="Geographic coverage")
     
     # Financial information
     payment_terms = Column(String(100), doc="Payment terms")
@@ -483,7 +485,7 @@ class Supplier(FullBaseModel):
     is_preferred = Column(Boolean, nullable=False, default=False, doc="Is preferred supplier")
     
     # Compliance and certifications
-    certifications = Column(ARRAY(String), doc="Supplier certifications")
+    certifications = Column(JSON, doc="Supplier certifications")
     compliance_status = Column(String(50), doc="Compliance status")
     
     # Relationship management
@@ -544,10 +546,10 @@ class PriceList(FullBaseModel):
     
     # Discounts and terms
     base_discount_percent = Column(Float, default=0.0, doc="Base discount percentage")
-    volume_discounts = Column(JSONB, doc="Volume discount tiers")
+    volume_discounts = Column(JSON, doc="Volume discount tiers")
     
     # Geographic applicability
-    applicable_regions = Column(ARRAY(String), doc="Applicable regions")
+    applicable_regions = Column(JSON, doc="Applicable regions")
     shipping_terms = Column(String(100), doc="Shipping terms")
     
     # Status
@@ -645,16 +647,16 @@ class BOMCostAnalysis(FullBaseModel):
     markup_cost = Column(Numeric(15, 2), doc="Markup cost")
     
     # Cost per category
-    cost_by_category = Column(JSONB, doc="Cost breakdown by category")
-    cost_by_supplier = Column(JSONB, doc="Cost breakdown by supplier")
+    cost_by_category = Column(JSON, doc="Cost breakdown by category")
+    cost_by_supplier = Column(JSON, doc="Cost breakdown by supplier")
     
     # Analysis parameters
-    analysis_parameters = Column(JSONB, doc="Analysis parameters")
-    assumptions = Column(JSONB, doc="Cost assumptions")
+    analysis_parameters = Column(JSON, doc="Analysis parameters")
+    assumptions = Column(JSON, doc="Cost assumptions")
     
     # Currency and pricing
     currency = Column(String(3), nullable=False, default='USD', doc="Currency code")
-    exchange_rates = Column(JSONB, doc="Exchange rates used")
+    exchange_rates = Column(JSON, doc="Exchange rates used")
     pricing_date = Column(Date, doc="Pricing date")
     
     # Results
@@ -696,11 +698,11 @@ class ComponentLibrary(FullBaseModel):
     
     # Content
     component_count = Column(Integer, default=0, doc="Number of components")
-    categories_included = Column(ARRAY(String), doc="Categories included")
+    categories_included = Column(JSON, doc="Categories included")
     
     # Access control
     is_public = Column(Boolean, nullable=False, default=False, doc="Is public library")
-    access_permissions = Column(JSONB, doc="Access permissions")
+    access_permissions = Column(JSON, doc="Access permissions")
     
     # Usage tracking
     usage_count = Column(Integer, default=0, doc="Usage count")
@@ -735,12 +737,12 @@ class BOMTemplate(FullBaseModel):
     # System parameters
     min_capacity_kw = Column(Float, doc="Minimum system capacity")
     max_capacity_kw = Column(Float, doc="Maximum system capacity")
-    voltage_levels = Column(ARRAY(Float), doc="Supported voltage levels")
+    voltage_levels = Column(JSON, doc="Supported voltage levels")
     
     # Template structure
-    template_data = Column(JSONB, nullable=False, doc="Template structure and rules")
-    component_rules = Column(JSONB, doc="Component selection rules")
-    calculation_formulas = Column(JSONB, doc="Calculation formulas")
+    template_data = Column(JSON, nullable=False, doc="Template structure and rules")
+    component_rules = Column(JSON, doc="Component selection rules")
+    calculation_formulas = Column(JSON, doc="Calculation formulas")
     
     # Usage tracking
     usage_count = Column(Integer, default=0, doc="Usage count")

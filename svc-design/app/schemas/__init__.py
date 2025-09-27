@@ -1,173 +1,258 @@
-"""Schemas package for the Design Service.
+"""Pydantic schemas for request/response validation."""
 
-This module contains all Pydantic schemas for request/response models,
-including base schemas, design schemas, layout schemas, shading schemas, and BOM schemas.
-"""
-
-# Base schemas
-from .base import (
-    BaseResponse,
-    ErrorResponse,
-    ListResponse,
-    PaginatedResponse,
-    SuccessResponse,
-    TimestampSchema,
-    UUIDSchema,
-)
-
-# Design schemas
+from .base import BaseSchema, TimestampSchema, PaginationSchema
 from .design import (
-    DesignApprovalCreate,
-    DesignApprovalResponse,
-    DesignApprovalUpdate,
-    DesignAttachmentCreate,
-    DesignAttachmentResponse,
-    DesignCommentCreate,
-    DesignCommentResponse,
-    DesignCommentUpdate,
-    DesignCreate,
-    DesignResponse,
-    DesignShareCreate,
-    DesignShareResponse,
-    DesignShareUpdate,
-    DesignTagCreate,
-    DesignTagResponse,
-    DesignUpdate,
-    DesignVersionCreate,
-    DesignVersionResponse,
+    SolarSystemDesign,
+    SolarSystemDesignCreate,
+    SolarSystemDesignUpdate,
+    SolarSystemDesignResponse,
+    DesignValidationResult,
+    DesignOptimizationRequest,
+    DesignOptimizationResult
 )
-
-# Layout schemas
 from .layout import (
-    LayoutConstraintCreate,
-    LayoutConstraintResponse,
-    LayoutConstraintUpdate,
-    LayoutCreate,
-    LayoutModuleCreate,
-    LayoutModuleResponse,
-    LayoutModuleUpdate,
-    LayoutOptimizationCreate,
-    LayoutOptimizationResponse,
+    PanelLayout,
+    PanelLayoutCreate,
+    PanelLayoutUpdate,
+    PanelLayoutResponse,
+    LayoutValidationResult,
     LayoutResponse,
-    LayoutTemplateCreate,
-    LayoutTemplateResponse,
-    LayoutTemplateUpdate,
-    LayoutUpdate,
-    LayoutZoneCreate,
     LayoutZoneResponse,
-    LayoutZoneUpdate,
+    LayoutModuleResponse,
+    LayoutOptimizationResponse,
+    LayoutTemplateResponse,
+    LayoutConstraintResponse,
+    LayoutGenerationRequest,
+    LayoutGenerationResponse,
+    LayoutAnalysisRequest,
+    LayoutAnalysisResponse,
+    LayoutComparisonRequest,
+    LayoutComparisonResponse,
+    LayoutComparisonResult,
+    LayoutExportRequest,
+    LayoutExportResponse,
+    LayoutListResponse
 )
-
-# Shading schemas
 from .shading import (
+    ShadingAnalysis,
     ShadingAnalysisCreate,
-    ShadingAnalysisResponse,
     ShadingAnalysisUpdate,
-    ShadingMitigationCreate,
-    ShadingMitigationResponse,
-    ShadingMitigationUpdate,
-    ShadingObjectCreate,
-    ShadingObjectResponse,
-    ShadingObjectUpdate,
-    ShadingReportCreate,
-    ShadingReportResponse,
-    ShadingResultResponse,
-    ShadingVisualizationCreate,
-    ShadingVisualizationResponse,
+    ShadingAnalysisResponse,
+    ShadingResult
 )
-
-# BOM schemas
 from .bom import (
-    BOMCostAnalysisCreate,
-    BOMCostAnalysisResponse,
-    BOMCreate,
+    BillOfMaterials,
+    BOMItem,
     BOMItemCreate,
-    BOMItemResponse,
     BOMItemUpdate,
     BOMResponse,
-    BOMTemplateCreate,
-    BOMTemplateResponse,
-    BOMTemplateUpdate,
-    BOMUpdate,
-    ComponentCreate,
-    ComponentResponse,
-    ComponentUpdate,
+    CostAnalysis
+)
+
+# New authentication, project, and solar schemas
+from .user import (
+    UserRole,
+    UserBase,
+    UserCreate,
+    UserUpdate,
+    UserPasswordUpdate,
+    UserResponse,
+    UserProfile,
+    UserList,
+    LoginRequest,
+    LoginResponse,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+    PasswordResetRequest,
+    PasswordResetConfirm,
+    EmailVerificationRequest,
+    UserSessionBase,
+    UserSessionCreate,
+    UserSessionResponse,
+    UserSessionList
+)
+from .project import (
+    ProjectStatus,
+    ProjectType,
+    ProjectPriority,
+    ProjectBase,
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+    ProjectSummary,
+    ProjectList,
+    ProjectFilter,
+    ProjectStats,
+    ProjectLocationUpdate,
+    ProjectTagsUpdate,
+    ProjectCustomFieldsUpdate,
+    ProjectStatusUpdate
+)
+from .solar import (
+    SolarDesignStatus,
+    SolarDesignType,
+    ComponentType,
+    CalculationType,
+    CalculationStatus,
+    SolarDesignBase,
+    SolarDesignCreate,
+    SolarDesignUpdate,
+    SolarDesignResponse,
+    SolarDesignSummary,
+    SolarDesignList,
+    SolarComponentBase,
+    SolarComponentCreate,
+    SolarComponentUpdate,
+    SolarComponentResponse,
+    SolarComponentList,
+    DesignCalculationBase,
+    DesignCalculationCreate,
+    DesignCalculationUpdate,
+    DesignCalculationResponse,
+    DesignCalculationSummary,
+    DesignCalculationList,
+    CalculationRequest,
+    CalculationResult,
+    SolarDesignFilter,
+    ComponentFilter
 )
 
 __all__ = [
     # Base schemas
-    "BaseResponse",
-    "ErrorResponse",
-    "ListResponse",
-    "PaginatedResponse",
-    "SuccessResponse",
-    "TimestampSchema",
-    "UUIDSchema",
+    "BaseSchema",
+    "TimestampSchema", 
+    "PaginationSchema",
+    
     # Design schemas
-    "DesignCreate",
-    "DesignResponse",
-    "DesignUpdate",
-    "DesignVersionCreate",
-    "DesignVersionResponse",
-    "DesignApprovalCreate",
-    "DesignApprovalResponse",
-    "DesignApprovalUpdate",
-    "DesignCommentCreate",
-    "DesignCommentResponse",
-    "DesignCommentUpdate",
-    "DesignAttachmentCreate",
-    "DesignAttachmentResponse",
-    "DesignTagCreate",
-    "DesignTagResponse",
-    "DesignShareCreate",
-    "DesignShareResponse",
-    "DesignShareUpdate",
+    "SolarSystemDesign",
+    "SolarSystemDesignCreate",
+    "SolarSystemDesignUpdate",
+    "SolarSystemDesignResponse",
+    "DesignValidationResult",
+    "DesignOptimizationRequest",
+    "DesignOptimizationResult",
+    
     # Layout schemas
-    "LayoutCreate",
+    "PanelLayout",
+    "PanelLayoutCreate",
+    "PanelLayoutUpdate",
+    "PanelLayoutResponse",
+    "LayoutValidationResult",
     "LayoutResponse",
-    "LayoutUpdate",
-    "LayoutZoneCreate",
     "LayoutZoneResponse",
-    "LayoutZoneUpdate",
-    "LayoutModuleCreate",
     "LayoutModuleResponse",
-    "LayoutModuleUpdate",
-    "LayoutOptimizationCreate",
     "LayoutOptimizationResponse",
-    "LayoutTemplateCreate",
     "LayoutTemplateResponse",
-    "LayoutTemplateUpdate",
-    "LayoutConstraintCreate",
     "LayoutConstraintResponse",
-    "LayoutConstraintUpdate",
+    "LayoutGenerationRequest",
+    "LayoutGenerationResponse",
+    "LayoutAnalysisRequest",
+    "LayoutAnalysisResponse",
+    "LayoutComparisonRequest",
+    "LayoutComparisonResponse",
+    "LayoutComparisonResult",
+    "LayoutExportRequest",
+    "LayoutExportResponse",
+    "LayoutListResponse",
+    
     # Shading schemas
+    "ShadingAnalysis",
     "ShadingAnalysisCreate",
-    "ShadingAnalysisResponse",
     "ShadingAnalysisUpdate",
-    "ShadingObjectCreate",
-    "ShadingObjectResponse",
-    "ShadingObjectUpdate",
-    "ShadingResultResponse",
-    "ShadingMitigationCreate",
-    "ShadingMitigationResponse",
-    "ShadingMitigationUpdate",
-    "ShadingReportCreate",
-    "ShadingReportResponse",
-    "ShadingVisualizationCreate",
-    "ShadingVisualizationResponse",
+    "ShadingAnalysisResponse",
+    "ShadingResult",
+    
     # BOM schemas
-    "BOMCreate",
-    "BOMResponse",
-    "BOMUpdate",
+    "BillOfMaterials",
+    "BOMItem",
     "BOMItemCreate",
-    "BOMItemResponse",
     "BOMItemUpdate",
-    "ComponentCreate",
-    "ComponentResponse",
-    "ComponentUpdate",
-    "BOMTemplateCreate",
-    "BOMTemplateResponse",
-    "BOMTemplateUpdate",
-    "BOMCostAnalysisCreate",
-    "BOMCostAnalysisResponse",
+    "BOMResponse",
+    "CostAnalysis",
+    
+    # User schemas
+    "UserRole",
+    "UserBase",
+    "UserCreate",
+    "UserUpdate",
+    "UserPasswordUpdate",
+    "UserResponse",
+    "UserProfile",
+    "UserList",
+    "LoginRequest",
+    "LoginResponse",
+    "RefreshTokenRequest",
+    "RefreshTokenResponse",
+    "PasswordResetRequest",
+    "PasswordResetConfirm",
+    "EmailVerificationRequest",
+    "UserSessionBase",
+    "UserSessionCreate",
+    "UserSessionResponse",
+    "UserSessionList",
+    
+    # Project schemas
+    "ProjectStatus",
+    "ProjectType",
+    "ProjectPriority",
+    "ProjectBase",
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectResponse",
+    "ProjectSummary",
+    "ProjectList",
+    "ProjectFilter",
+    "ProjectStats",
+    "ProjectLocationUpdate",
+    "ProjectTagsUpdate",
+    "ProjectCustomFieldsUpdate",
+    "ProjectStatusUpdate",
+    
+    # Solar schemas
+    "SolarDesignStatus",
+    "SolarDesignType",
+    "ComponentType",
+    "CalculationType",
+    "CalculationStatus",
+    "SolarDesignBase",
+    "SolarDesignCreate",
+    "SolarDesignUpdate",
+    "SolarDesignResponse",
+    "SolarDesignSummary",
+    "SolarDesignList",
+    "SolarComponentBase",
+    "SolarComponentCreate",
+    "SolarComponentUpdate",
+    "SolarComponentResponse",
+    "SolarComponentList",
+    "DesignCalculationBase",
+    "DesignCalculationCreate",
+    "DesignCalculationUpdate",
+    "DesignCalculationResponse",
+    "DesignCalculationSummary",
+    "DesignCalculationList",
+    "CalculationRequest",
+    "CalculationResult",
+    "SolarDesignFilter",
+    "ComponentFilter"
 ]
+
+# Aliases for backward compatibility with API routes
+DesignCreate = SolarSystemDesignCreate
+DesignUpdate = SolarSystemDesignUpdate
+DesignResponse = SolarSystemDesignResponse
+DesignListResponse = SolarDesignList
+DesignPerformanceMetrics = CalculationResult
+DesignComparison = SolarDesignBase
+DesignComparisonResult = CalculationResult
+
+# Layout aliases - most are already properly named, just add missing ones
+LayoutCreate = PanelLayoutCreate
+LayoutUpdate = PanelLayoutUpdate
+LayoutOptimization = LayoutGenerationRequest
+LayoutPerformanceMetrics = LayoutAnalysisResponse
+LayoutComparison = LayoutComparisonRequest
+LayoutZoneCreate = LayoutZoneResponse  # Placeholder - actual create schema may differ
+LayoutZoneUpdate = LayoutZoneResponse  # Placeholder - actual update schema may differ
+LayoutTemplateCreate = LayoutTemplateResponse  # Placeholder - actual create schema may differ
+LayoutTemplateUpdate = LayoutTemplateResponse  # Placeholder - actual update schema may differ

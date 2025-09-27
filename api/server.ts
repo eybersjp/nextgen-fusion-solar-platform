@@ -1,12 +1,16 @@
 /**
  * local server entry file, for local development
  */
+import dotenv from 'dotenv';
 import app from './app.js';
+
+// Load environment variables
+dotenv.config();
 
 /**
  * start server with port
  */
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 const server = app.listen(PORT, () => {
   console.log(`Server ready on port ${PORT}`);

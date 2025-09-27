@@ -10,11 +10,11 @@ from enum import Enum as PyEnum
 from typing import List, Optional
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
+    Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text, JSON
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, backref
-from geoalchemy2 import Geometry
+# from geoalchemy2 import Geometry  # Disabled for SQLite compatibility
 
 from .base import FullBaseModel
 
@@ -67,7 +67,9 @@ class Design(FullBaseModel):
     # Site information
     site_name = Column(String(255), doc="Site name")
     site_address = Column(Text, doc="Site address")
-    site_coordinates = Column(Geometry('POINT', srid=4326), doc="Site coordinates (WGS84)")
+    # site_coordinates = Column(Geometry('POINT', srid=4326), doc="Site coordinates (WGS84)")  # Disabled for SQLite
+    site_latitude = Column(Float, doc="Site latitude (WGS84)")
+    site_longitude = Column(Float, doc="Site longitude (WGS84)")
     site_area = Column(Float, doc="Site area in square meters")
     site_elevation = Column(Float, doc="Site elevation in meters")
     
@@ -125,14 +127,14 @@ class Design(FullBaseModel):
     parent_design_id = Column(UUID(as_uuid=True), ForeignKey('designs.id'), doc="Parent design ID")
     
     # Compliance and standards
-    compliance_standards = Column(JSONB, doc="Compliance standards and requirements")
-    permit_requirements = Column(JSONB, doc="Permit requirements")
+    compliance_standards = Column(JSON, doc="Compliance standards and requirements")
+    permit_requirements = Column(JSON, doc="Permit requirements")
     
     # Weather and environmental data
     weather_data_source = Column(String(100), doc="Weather data source")
-    irradiance_data = Column(JSONB, doc="Irradiance data")
-    temperature_data = Column(JSONB, doc="Temperature data")
-    wind_data = Column(JSONB, doc="Wind data")
+    irradiance_data = Column(JSON, doc="Irradiance data")
+    temperature_data = Column(JSON, doc="Temperature data")
+    wind_data = Column(JSON, doc="Wind data")
     
     # Loss analysis
     shading_losses = Column(Float, doc="Shading losses percentage")
@@ -237,10 +239,10 @@ class DesignVersion(FullBaseModel):
     change_description = Column(Text, doc="Description of changes")
     
     # Snapshot data
-    design_data = Column(JSONB, nullable=False, doc="Complete design data snapshot")
-    layout_data = Column(JSONB, doc="Layout data snapshot")
-    performance_data = Column(JSONB, doc="Performance data snapshot")
-    financial_data = Column(JSONB, doc="Financial data snapshot")
+    design_data = Column(JSON, nullable=False, doc="Complete design data snapshot")
+    layout_data = Column(JSON, doc="Layout data snapshot")
+    performance_data = Column(JSON, doc="Performance data snapshot")
+    financial_data = Column(JSON, doc="Financial data snapshot")
     
     # Version metadata
     is_major_version = Column(Boolean, nullable=False, default=False, doc="Is major version")
@@ -286,7 +288,7 @@ class DesignApproval(FullBaseModel):
     conditions = Column(Text, doc="Approval conditions")
     
     # Required changes
-    required_changes = Column(JSONB, doc="Required changes for approval")
+    required_changes = Column(JSON, doc="Required changes for approval")
     
     # Relationships
     design = relationship("Design", back_populates="approvals")
@@ -324,7 +326,7 @@ class DesignComment(FullBaseModel):
     resolved_at = Column(DateTime(timezone=True), doc="Resolution timestamp")
     
     # Location reference (for spatial comments)
-    location_data = Column(JSONB, doc="Location data for spatial comments")
+    location_data = Column(JSON, doc="Location data for spatial comments")
     
     # Relationships
     design = relationship("Design", back_populates="comments")

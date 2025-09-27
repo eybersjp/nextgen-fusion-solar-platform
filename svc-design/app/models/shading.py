@@ -12,9 +12,11 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy import (
     Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text, Time
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID
+# from sqlalchemy.dialects.postgresql import ARRAY  # Disabled for SQLite compatibility
+from sqlalchemy import JSON
 from sqlalchemy.orm import relationship, backref
-from geoalchemy2 import Geometry
+# from geoalchemy2 import Geometry  # Disabled for SQLite compatibility
 
 from .base import FullBaseModel
 
@@ -188,16 +190,16 @@ class ShadingAnalysis(FullBaseModel):
     
     # Error handling
     error_message = Column(Text, doc="Error message if failed")
-    warnings = Column(JSONB, doc="Analysis warnings")
+    warnings = Column(JSON, doc="Analysis warnings")
     
     # Results data
-    hourly_results = Column(JSONB, doc="Hourly shading results")
-    monthly_results = Column(JSONB, doc="Monthly shading summary")
-    annual_results = Column(JSONB, doc="Annual shading summary")
+    hourly_results = Column(JSON, doc="Hourly shading results")
+    monthly_results = Column(JSON, doc="Monthly shading summary")
+    annual_results = Column(JSON, doc="Annual shading summary")
     
     # Spatial results
-    shading_map_data = Column(JSONB, doc="Spatial shading map data")
-    irradiance_map_data = Column(JSONB, doc="Irradiance map data")
+    shading_map_data = Column(JSON, doc="Spatial shading map data")
+    irradiance_map_data = Column(JSON, doc="Irradiance map data")
     
     def __repr__(self) -> str:
         return f"<ShadingAnalysis(id={self.id}, name='{self.name}', status='{self.analysis_status}')>"
@@ -254,7 +256,8 @@ class Obstacle(FullBaseModel):
     )
     
     # Geometry
-    geometry = Column(Geometry('POLYGON', srid=4326), nullable=False, doc="Obstacle geometry")
+    # geometry = Column(Geometry('POLYGON', srid=4326), nullable=False, doc="Obstacle geometry")  # Disabled for SQLite
+    geometry_json = Column(JSON, nullable=False, doc="Obstacle geometry as GeoJSON")
     height_meters = Column(Float, nullable=False, doc="Obstacle height in meters")
     base_elevation_meters = Column(Float, default=0.0, doc="Base elevation in meters")
     
@@ -265,7 +268,7 @@ class Obstacle(FullBaseModel):
     
     # Seasonal variations
     is_seasonal = Column(Boolean, nullable=False, default=False, doc="Has seasonal variations")
-    seasonal_data = Column(JSONB, doc="Seasonal height/transparency variations")
+    seasonal_data = Column(JSON, doc="Seasonal height/transparency variations")
     
     # Tree-specific properties
     tree_species = Column(String(100), doc="Tree species (if applicable)")
@@ -281,7 +284,7 @@ class Obstacle(FullBaseModel):
     # Status and validation
     is_active = Column(Boolean, nullable=False, default=True, doc="Is obstacle active")
     is_validated = Column(Boolean, nullable=False, default=False, doc="Is geometry validated")
-    validation_errors = Column(JSONB, doc="Geometry validation errors")
+    validation_errors = Column(JSON, doc="Geometry validation errors")
     
     # Data source
     data_source = Column(
@@ -398,7 +401,9 @@ class ShadingResult(FullBaseModel):
     # Spatial reference
     panel_array_id = Column(UUID(as_uuid=True), index=True, doc="Panel array ID (if applicable)")
     grid_point_id = Column(String(100), doc="Grid point identifier")
-    coordinates = Column(Geometry('POINT', srid=4326), doc="Point coordinates")
+    # coordinates = Column(Geometry('POINT', srid=4326), doc="Point coordinates")  # Disabled for SQLite
+    latitude = Column(Float, doc="Point latitude")
+    longitude = Column(Float, doc="Point longitude")
     
     # Shading calculations
     is_shaded = Column(Boolean, nullable=False, doc="Is point shaded")
@@ -411,7 +416,7 @@ class ShadingResult(FullBaseModel):
     total_irradiance = Column(Float, doc="Total irradiance (W/m²)")
     
     # Shading sources
-    shading_obstacles = Column(JSONB, doc="List of obstacles causing shading")
+    shading_obstacles = Column(JSON, doc="List of obstacles causing shading")
     primary_obstacle_id = Column(UUID(as_uuid=True), doc="Primary shading obstacle ID")
     
     # Shadow geometry
@@ -457,15 +462,16 @@ class IrradianceMap(FullBaseModel):
     
     # Spatial parameters
     grid_resolution_meters = Column(Float, nullable=False, doc="Grid resolution in meters")
-    bounds_geometry = Column(Geometry('POLYGON', srid=4326), doc="Map bounds")
+    # bounds_geometry = Column(Geometry('POLYGON', srid=4326), doc="Map bounds")  # Disabled for SQLite
+    bounds_geometry_json = Column(JSON, doc="Map bounds as GeoJSON")
     
     # Map data
-    grid_data = Column(JSONB, nullable=False, doc="Grid-based irradiance data")
-    statistics = Column(JSONB, doc="Map statistics (min, max, mean, std)")
+    grid_data = Column(JSON, nullable=False, doc="Grid-based irradiance data")
+    statistics = Column(JSON, doc="Map statistics (min, max, mean, std)")
     
     # Color mapping
-    color_scale = Column(JSONB, doc="Color scale definition")
-    legend_data = Column(JSONB, doc="Legend information")
+    color_scale = Column(JSON, doc="Color scale definition")
+    legend_data = Column(JSON, doc="Legend information")
     
     # File references
     raster_file_path = Column(String(500), doc="Raster file path")
@@ -473,7 +479,7 @@ class IrradianceMap(FullBaseModel):
     
     # Generation information
     generation_method = Column(String(100), doc="Map generation method")
-    generation_parameters = Column(JSONB, doc="Generation parameters")
+    generation_parameters = Column(JSON, doc="Generation parameters")
     
     # Relationships
     shading_analysis = relationship("ShadingAnalysis", backref="irradiance_maps")
@@ -519,16 +525,16 @@ class SunPath(FullBaseModel):
     timezone_offset = Column(Float, doc="Timezone offset from UTC")
     
     # Sun path data
-    path_data = Column(JSONB, nullable=False, doc="Complete sun path data")
+    path_data = Column(JSON, nullable=False, doc="Complete sun path data")
     
     # Key solar events
-    summer_solstice_data = Column(JSONB, doc="Summer solstice sun path")
-    winter_solstice_data = Column(JSONB, doc="Winter solstice sun path")
-    spring_equinox_data = Column(JSONB, doc="Spring equinox sun path")
-    autumn_equinox_data = Column(JSONB, doc="Autumn equinox sun path")
+    summer_solstice_data = Column(JSON, doc="Summer solstice sun path")
+    winter_solstice_data = Column(JSON, doc="Winter solstice sun path")
+    spring_equinox_data = Column(JSON, doc="Spring equinox sun path")
+    autumn_equinox_data = Column(JSON, doc="Autumn equinox sun path")
     
     # Monthly sun paths
-    monthly_paths = Column(JSONB, doc="Monthly sun path data")
+    monthly_paths = Column(JSON, doc="Monthly sun path data")
     
     # Solar angles
     max_elevation_degrees = Column(Float, doc="Maximum solar elevation")
@@ -591,12 +597,12 @@ class ShadingReport(FullBaseModel):
     # Report content
     executive_summary = Column(Text, doc="Executive summary")
     methodology = Column(Text, doc="Analysis methodology")
-    key_findings = Column(JSONB, doc="Key findings and metrics")
+    key_findings = Column(JSON, doc="Key findings and metrics")
     recommendations = Column(Text, doc="Recommendations")
     
     # Charts and visualizations
-    charts_data = Column(JSONB, doc="Chart data and configurations")
-    maps_data = Column(JSONB, doc="Map data and configurations")
+    charts_data = Column(JSON, doc="Chart data and configurations")
+    maps_data = Column(JSON, doc="Map data and configurations")
     
     # File outputs
     pdf_file_path = Column(String(500), doc="PDF report file path")
@@ -604,7 +610,7 @@ class ShadingReport(FullBaseModel):
     
     # Report metadata
     template_used = Column(String(255), doc="Report template used")
-    generation_parameters = Column(JSONB, doc="Report generation parameters")
+    generation_parameters = Column(JSON, doc="Report generation parameters")
     
     # Status
     generation_status = Column(
@@ -661,7 +667,7 @@ class ShadingMitigation(FullBaseModel):
     roi_years = Column(Float, doc="Return on investment in years")
     
     # Technical details
-    technical_requirements = Column(JSONB, doc="Technical requirements")
+    technical_requirements = Column(JSON, doc="Technical requirements")
     regulatory_considerations = Column(Text, doc="Regulatory considerations")
     
     # Status

@@ -3,6 +3,9 @@
  * Handles JWT token validation and user context
  */
 
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { createClient } from '@supabase/supabase-js';
@@ -23,8 +26,8 @@ declare global {
 }
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env['SUPABASE_URL']!;
+const supabaseServiceKey = process.env['SUPABASE_SERVICE_ROLE_KEY']!;
 
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.');
@@ -186,7 +189,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
  */
 export const apiKeyAuth = (req: Request, res: Response, next: NextFunction) => {
   const apiKey = req.headers['x-api-key'] as string;
-  const validApiKeys = process.env.VALID_API_KEYS?.split(',') || [];
+  const validApiKeys = process.env['VALID_API_KEYS']?.split(',') || [];
   
   if (!apiKey || !validApiKeys.includes(apiKey)) {
     return res.status(401).json({

@@ -31,7 +31,7 @@ const format = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.colorize({ all: true }),
   winston.format.printf(
-    (info) => `${info.timestamp} ${info.level}: ${info.message}`
+    (info) => `${info['timestamp']} ${info.level}: ${info.message}`
   )
 );
 
@@ -46,7 +46,7 @@ const productionFormat = winston.format.combine(
 const transports = [
   // Console transport
   new winston.transports.Console({
-    format: process.env.NODE_ENV === 'production' ? productionFormat : format
+    format: process.env['NODE_ENV'] === 'production' ? productionFormat : format
   }),
   
   // File transport for errors
@@ -65,7 +65,7 @@ const transports = [
 
 // Create the logger
 export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'development' ? 'debug' : 'info'),
+  level: process.env['LOG_LEVEL'] || (process.env['NODE_ENV'] === 'development' ? 'debug' : 'info'),
   levels,
   format: productionFormat,
   transports,

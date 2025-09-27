@@ -20,7 +20,8 @@ from starlette.types import ASGIApp
 
 from .config import get_settings
 from .logging import get_logger, set_request_id, set_user_id, set_organization_id
-from .auth import verify_token, get_user_from_token
+from .auth import AuthService
+from ..exceptions import AuthenticationError
 from .security import check_rate_limit, validate_json_input
 from .cache import cache_manager
 from .exceptions import (
@@ -169,13 +170,17 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         token = auth_header.split(" ")[1]
         
         try:
-            # Verify token
-            payload = verify_token(token)
-            user = get_user_from_token(payload)
+            # Get database session
+            from .database import get_db
+            db = next(get_db())
+            
+            # Verify token and get user
+            auth_service = AuthService()
+            user = await auth_service.get_current_user(token, db)
             
             # Add user to request state
             request.state.user = user
-            request.state.token_payload = payload
+            request.state.token = token
             
             # Set logging context
             set_user_id(user.id)

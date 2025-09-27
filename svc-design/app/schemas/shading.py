@@ -176,6 +176,11 @@ class ShadingObjectCreate(BaseSchema):
     metadata: Optional[Dict[str, Any]] = Field(None, description="Object metadata")
 
 
+# Aliases for backward compatibility
+ShadingAnalysis = ShadingAnalysisResponse
+ShadingResult = ShadingAnalysisResponse
+
+
 class ShadingObjectUpdate(BaseSchema):
     """Schema for updating a shading object."""
     

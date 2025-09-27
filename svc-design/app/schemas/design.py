@@ -198,6 +198,40 @@ class DesignVersionResponse(
     version: str = Field(..., description="Version number")
     version_notes: Optional[str] = Field(None, description="Version notes")
     design_data: Optional[Dict[str, Any]] = Field(None, description="Version-specific design data")
+
+
+# Aliases for backward compatibility with existing imports
+SolarSystemDesign = DesignResponse
+SolarSystemDesignCreate = DesignCreate
+SolarSystemDesignUpdate = DesignUpdate
+SolarSystemDesignResponse = DesignResponse
+
+
+class DesignValidationResult(BaseSchema):
+    """Schema for design validation results."""
+    
+    is_valid: bool = Field(..., description="Whether the design is valid")
+    errors: List[str] = Field(default_factory=list, description="Validation errors")
+    warnings: List[str] = Field(default_factory=list, description="Validation warnings")
+    suggestions: List[str] = Field(default_factory=list, description="Optimization suggestions")
+
+
+class DesignOptimizationRequest(BaseSchema):
+    """Schema for design optimization requests."""
+    
+    design_id: uuid.UUID = Field(..., description="Design ID to optimize")
+    optimization_goals: List[str] = Field(..., description="Optimization objectives")
+    constraints: Optional[Dict[str, Any]] = Field(None, description="Optimization constraints")
+    parameters: Optional[Dict[str, Any]] = Field(None, description="Optimization parameters")
+
+
+class DesignOptimizationResult(BaseSchema):
+    """Schema for design optimization results."""
+    
+    original_design_id: uuid.UUID = Field(..., description="Original design ID")
+    optimized_design_data: Dict[str, Any] = Field(..., description="Optimized design data")
+    improvements: Dict[str, float] = Field(..., description="Performance improvements")
+    optimization_summary: str = Field(..., description="Summary of optimizations made")
     is_current: bool = Field(False, description="Whether this is the current version")
     parent_version_id: Optional[uuid.UUID] = Field(None, description="Parent version ID")
 

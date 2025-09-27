@@ -11,8 +11,8 @@ from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
-from ..database import get_db_session as _get_db_session
-from .auth import verify_token, get_user_from_token
+from .database import get_db
+from .auth import AuthService
 from .exceptions import AuthenticationError, ValidationError
 
 # Security scheme for JWT tokens
@@ -21,7 +21,7 @@ security = HTTPBearer()
 
 def get_db_session() -> Session:
     """Get database session dependency."""
-    return next(_get_db_session())
+    return next(get_db())
 
 
 async def get_current_user(
@@ -30,11 +30,10 @@ async def get_current_user(
 ):
     """Get current authenticated user from JWT token."""
     try:
-        # Verify the JWT token
-        payload = verify_token(credentials.credentials)
+        auth_service = AuthService()
         
-        # Get user from token payload
-        user = await get_user_from_token(payload, db)
+        # Verify the JWT token and get user
+        user = await auth_service.get_current_user(credentials.credentials, db)
         
         if not user:
             raise AuthenticationError("User not found")
@@ -44,7 +43,7 @@ async def get_current_user(
     except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=e.detail,
+            detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:

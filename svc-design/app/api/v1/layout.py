@@ -30,6 +30,12 @@ from app.core import (
     LayoutValidationError,
     LayoutOptimizationError
 )
+from app.core.cache import (
+    cache_layout_optimization,
+    cache_design_query,
+    cache_3d_calculation,
+    invalidate_design_cache
+)
 from app.schemas import (
     LayoutCreate,
     LayoutUpdate,
@@ -152,6 +158,7 @@ async def list_layouts(
     summary="Get layout by ID",
     description="Retrieve a specific layout by its ID"
 )
+@cache_design_query(ttl=300)
 async def get_layout(
     layout_id: UUID = Path(..., description="Layout ID"),
     db: AsyncSession = Depends(get_db),
@@ -195,6 +202,8 @@ async def update_layout(
         logger.info(f"Updating layout {layout_id} for user {current_user.id}")
         layout_service = LayoutService(db)
         layout = await layout_service.update_layout(layout_id, layout_data, current_user.id)
+        # Invalidate cache after update
+        await invalidate_design_cache(layout_id)
         logger.info(f"Layout {layout_id} updated successfully")
         return layout
     except LayoutNotFoundError as e:
@@ -233,6 +242,8 @@ async def delete_layout(
         logger.info(f"Deleting layout {layout_id} for user {current_user.id}")
         layout_service = LayoutService(db)
         await layout_service.delete_layout(layout_id, current_user.id)
+        # Invalidate cache after deletion
+        await invalidate_design_cache(layout_id)
         logger.info(f"Layout {layout_id} deleted successfully")
     except LayoutNotFoundError as e:
         logger.error(f"Layout not found: {e}")
@@ -255,6 +266,7 @@ async def delete_layout(
     summary="Optimize layout",
     description="Run optimization algorithm on a layout"
 )
+@cache_layout_optimization(ttl=3600)
 async def optimize_layout(
     layout_id: UUID = Path(..., description="Layout ID"),
     optimization_data: LayoutOptimization = Body(...),
@@ -327,6 +339,7 @@ async def validate_layout(
     summary="Calculate layout performance",
     description="Calculate performance metrics for a layout"
 )
+@cache_3d_calculation(ttl=1800)
 async def calculate_layout_performance(
     layout_id: UUID = Path(..., description="Layout ID"),
     db: AsyncSession = Depends(get_db),

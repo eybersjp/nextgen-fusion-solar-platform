@@ -598,12 +598,21 @@ class LayoutPerformanceMetrics(BaseSchema):
     specific_yield_kwh_kwp: Optional[float] = Field(None, gt=0, description="Specific yield")
     performance_ratio: Optional[float] = Field(None, ge=0, le=1, description="Performance ratio")
     capacity_factor: Optional[float] = Field(None, ge=0, le=1, description="Capacity factor")
+
+
     shading_losses_percent: Optional[float] = Field(None, ge=0, le=100, description="Shading losses")
     soiling_losses_percent: Optional[float] = Field(None, ge=0, le=100, description="Soiling losses")
     system_losses_percent: Optional[float] = Field(None, ge=0, le=100, description="System losses")
     irradiation_kwh_m2: Optional[float] = Field(None, gt=0, description="Annual irradiation")
     temperature_coefficient: Optional[float] = Field(None, description="Temperature coefficient")
     degradation_rate_percent: Optional[float] = Field(None, ge=0, le=10, description="Annual degradation rate")
+
+
+# Aliases for backward compatibility
+PanelLayout = LayoutResponse
+PanelLayoutCreate = LayoutCreate
+PanelLayoutUpdate = LayoutUpdate
+PanelLayoutResponse = LayoutResponse
 
 
 class LayoutComparison(BaseSchema):

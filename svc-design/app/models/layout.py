@@ -12,9 +12,10 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy import (
     Boolean, Column, DateTime, Enum, Float, ForeignKey, Integer, String, Text
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import JSON
 from sqlalchemy.orm import relationship, backref
-from geoalchemy2 import Geometry
+# from geoalchemy2 import Geometry  # Disabled for SQLite compatibility
 
 from .base import FullBaseModel
 
@@ -98,9 +99,12 @@ class Layout(FullBaseModel):
     )
     
     # Spatial information
-    site_boundary = Column(Geometry('POLYGON', srid=4326), doc="Site boundary polygon")
-    usable_area = Column(Geometry('MULTIPOLYGON', srid=4326), doc="Usable area polygons")
-    exclusion_zones = Column(Geometry('MULTIPOLYGON', srid=4326), doc="Exclusion zone polygons")
+    # site_boundary = Column(Geometry('POLYGON', srid=4326), doc="Site boundary polygon")  # Disabled for SQLite
+    # usable_area = Column(Geometry('MULTIPOLYGON', srid=4326), doc="Usable area polygons")  # Disabled for SQLite
+    # exclusion_zones = Column(Geometry('MULTIPOLYGON', srid=4326), doc="Exclusion zone polygons")  # Disabled for SQLite
+    site_boundary_json = Column(JSON, doc="Site boundary polygon as GeoJSON")
+    usable_area_json = Column(JSON, doc="Usable area polygons as GeoJSON")
+    exclusion_zones_json = Column(JSON, doc="Exclusion zone polygons as GeoJSON")
     
     # Layout parameters
     panel_tilt_degrees = Column(Float, doc="Panel tilt angle in degrees")
@@ -126,8 +130,8 @@ class Layout(FullBaseModel):
     
     # Layout optimization
     is_optimized = Column(Boolean, nullable=False, default=False, doc="Is layout optimized")
-    optimization_criteria = Column(JSONB, doc="Optimization criteria and weights")
-    optimization_results = Column(JSONB, doc="Optimization results and metrics")
+    optimization_criteria = Column(JSON, doc="Optimization criteria and weights")
+    optimization_results = Column(JSON, doc="Optimization results and metrics")
     
     # Generation information
     generation_method = Column(
@@ -137,12 +141,12 @@ class Layout(FullBaseModel):
         doc="Layout generation method"
     )
     
-    generation_parameters = Column(JSONB, doc="Generation parameters and settings")
+    generation_parameters = Column(JSON, doc="Generation parameters and settings")
     
     # Validation and compliance
     is_valid = Column(Boolean, nullable=False, default=True, doc="Is layout valid")
-    validation_errors = Column(JSONB, doc="Validation errors and warnings")
-    compliance_checks = Column(JSONB, doc="Compliance check results")
+    validation_errors = Column(JSON, doc="Validation errors and warnings")
+    compliance_checks = Column(JSON, doc="Compliance check results")
     
     def __repr__(self) -> str:
         return f"<Layout(id={self.id}, name='{self.name}', type='{self.layout_type}')>"
@@ -189,8 +193,9 @@ class PanelArray(FullBaseModel):
     )
     
     # Spatial data
-    array_geometry = Column(Geometry('POLYGON', srid=4326), doc="Array boundary polygon")
-    panel_positions = Column(JSONB, nullable=False, doc="Individual panel positions and orientations")
+    # array_geometry = Column(Geometry('POLYGON', srid=4326), doc="Array boundary polygon")  # Disabled for SQLite
+    array_geometry_json = Column(JSON, doc="Array boundary polygon as GeoJSON")
+    panel_positions = Column(JSON, nullable=False, doc="Individual panel positions and orientations")
     
     # Array configuration
     panels_per_string = Column(Integer, doc="Panels per string")
@@ -284,7 +289,7 @@ class Inverter(FullBaseModel):
     
     # Physical specifications
     weight_kg = Column(Float, doc="Weight in kilograms")
-    dimensions_mm = Column(JSONB, doc="Dimensions in millimeters (width, height, depth)")
+    dimensions_mm = Column(JSON, doc="Dimensions in millimeters (width, height, depth)")
     
     # Environmental specifications
     operating_temp_min = Column(Float, doc="Minimum operating temperature")
@@ -292,14 +297,16 @@ class Inverter(FullBaseModel):
     ip_rating = Column(String(10), doc="IP protection rating")
     
     # Location and installation
-    location_coordinates = Column(Geometry('POINT', srid=4326), doc="Inverter location")
+    # location_coordinates = Column(Geometry('POINT', srid=4326), doc="Inverter location")  # Disabled for SQLite
+    location_latitude = Column(Float, doc="Inverter latitude")
+    location_longitude = Column(Float, doc="Inverter longitude")
     installation_type = Column(
         Enum('indoor', 'outdoor', 'ground_mount', 'wall_mount', name='installation_type_enum'),
         doc="Installation type"
     )
     
     # Connected arrays
-    connected_arrays = Column(JSONB, doc="Connected array IDs and configurations")
+    connected_arrays = Column(JSON, doc="Connected array IDs and configurations")
     
     # Performance monitoring
     monitoring_enabled = Column(Boolean, nullable=False, default=True, doc="Monitoring enabled")
@@ -367,15 +374,17 @@ class ElectricalComponent(FullBaseModel):
     
     # Physical specifications
     weight_kg = Column(Float, doc="Weight in kilograms")
-    dimensions_mm = Column(JSONB, doc="Dimensions in millimeters")
+    dimensions_mm = Column(JSON, doc="Dimensions in millimeters")
     
     # Location and installation
-    location_coordinates = Column(Geometry('POINT', srid=4326), doc="Component location")
+    # location_coordinates = Column(Geometry('POINT', srid=4326), doc="Component location")  # Disabled for SQLite
+    location_latitude = Column(Float, doc="Component latitude")
+    location_longitude = Column(Float, doc="Component longitude")
     installation_type = Column(String(100), doc="Installation type")
     
     # Connections
-    input_connections = Column(JSONB, doc="Input connection specifications")
-    output_connections = Column(JSONB, doc="Output connection specifications")
+    input_connections = Column(JSON, doc="Input connection specifications")
+    output_connections = Column(JSON, doc="Output connection specifications")
     
     # Status and maintenance
     operational_status = Column(
@@ -427,7 +436,8 @@ class CableRun(FullBaseModel):
     cable_diameter_mm = Column(Float, doc="Cable diameter in millimeters")
     
     # Route information
-    route_geometry = Column(Geometry('LINESTRING', srid=4326), doc="Cable route geometry")
+    # route_geometry = Column(Geometry('LINESTRING', srid=4326), doc="Cable route geometry")  # Disabled for SQLite
+    route_geometry_json = Column(JSON, doc="Cable route geometry as GeoJSON")
     installation_method = Column(
         Enum('underground', 'overhead', 'conduit', 'tray', 'direct_burial', name='installation_method_enum'),
         doc="Installation method"
@@ -492,17 +502,17 @@ class LayoutOptimization(FullBaseModel):
     )
     
     # Optimization parameters
-    objective_function = Column(JSONB, nullable=False, doc="Objective function definition")
-    constraints = Column(JSONB, doc="Optimization constraints")
+    objective_function = Column(JSON, nullable=False, doc="Objective function definition")
+    constraints = Column(JSON, doc="Optimization constraints")
     algorithm = Column(String(100), doc="Optimization algorithm used")
     
     # Input parameters
-    input_parameters = Column(JSONB, nullable=False, doc="Input parameters for optimization")
+    input_parameters = Column(JSON, nullable=False, doc="Input parameters for optimization")
     
     # Results
-    optimization_results = Column(JSONB, doc="Detailed optimization results")
-    best_solution = Column(JSONB, doc="Best solution found")
-    convergence_data = Column(JSONB, doc="Convergence data and metrics")
+    optimization_results = Column(JSON, doc="Detailed optimization results")
+    best_solution = Column(JSON, doc="Best solution found")
+    convergence_data = Column(JSON, doc="Convergence data and metrics")
     
     # Performance metrics
     initial_objective_value = Column(Float, doc="Initial objective function value")

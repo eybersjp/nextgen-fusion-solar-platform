@@ -1,12 +1,243 @@
 {
+  "version": 2,
+  "name": "nextgen-fusion-commercial",
+  "alias": ["nextgen-fusion.vercel.app"],
+  "regions": ["iad1", "sfo1", "lhr1", "syd1"],
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": [
+          "api/**",
+          "migrations/**",
+          "scripts/**"
+        ]
+      }
+    },
+    {
+      "src": "vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
   "rewrites": [
     {
+      "source": "/api/auth/(.*)",
+      "destination": "/api/routes/auth"
+    },
+    {
+      "source": "/api/admin/(.*)",
+      "destination": "/api/routes/admin"
+    },
+    {
+      "source": "/api/enterprise/(.*)",
+      "destination": "/api/routes/enterprise"
+    },
+    {
+      "source": "/api/mfa/(.*)",
+      "destination": "/api/routes/mfa"
+    }
+  ],
+  "headers": [
+    {
       "source": "/api/(.*)",
-      "destination": "/api/index"
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, PATCH, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-Requested-With, Content-Type, Authorization, Accept, Origin"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.auth0.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.auth0.com https://api.nextgen-fusion.com;"
+        }
+      ]
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
     }
-  ]
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "VITE_APP_NAME": "NextGen Fusion Commercial Solar Platform",
+    "VITE_APP_VERSION": "1.0.0",
+    "VITE_API_BASE_URL": "https://nextgen-fusion.vercel.app/api"
+  },
+  "build": {
+    "env": {
+      "NODE_ENV": "production",
+      "VITE_AUTH0_DOMAIN": "@auth0_domain",
+      "VITE_AUTH0_CLIENT_ID": "@auth0_client_id",
+      "VITE_AUTH0_AUDIENCE": "@auth0_audience",
+      "VITE_AUTH0_REDIRECT_URI": "@auth0_redirect_uri",
+      "AUTH0_CLIENT_SECRET": "@auth0_client_secret",
+      "AUTH0_ISSUER_BASE_URL": "@auth0_issuer_base_url",
+      "AUTH0_SECRET": "@auth0_secret",
+      "JWT_SECRET": "@jwt_secret",
+      "DB_HOST": "@db_host",
+      "DB_PORT": "@db_port",
+      "DB_NAME": "@db_name",
+      "DB_USER": "@db_user",
+      "DB_PASSWORD": "@db_password",
+      "DB_SSL": "true",
+      "REDIS_URL": "@redis_url",
+      "STRIPE_PUBLISHABLE_KEY": "@stripe_publishable_key",
+      "STRIPE_SECRET_KEY": "@stripe_secret_key",
+      "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
+      "SENDGRID_API_KEY": "@sendgrid_api_key",
+      "SENTRY_DSN": "@sentry_dsn",
+      "LOG_LEVEL": "info",
+      "RATE_LIMIT_WINDOW_MS": "900000",
+      "RATE_LIMIT_MAX_REQUESTS": "100",
+      "SESSION_SECRET": "@session_secret",
+      "CORS_ORIGIN": "https://nextgen-fusion.vercel.app,https://nextgen-fusion.com",
+      "ENCRYPTION_KEY": "@encryption_key",
+      "MFA_ISSUER": "NextGen Fusion Commercial",
+      "BACKUP_CODES_COUNT": "10",
+      "TOKEN_EXPIRY_HOURS": "24",
+      "REFRESH_TOKEN_EXPIRY_DAYS": "30",
+      "PASSWORD_RESET_EXPIRY_HOURS": "2",
+      "EMAIL_VERIFICATION_EXPIRY_HOURS": "24",
+      "MAX_LOGIN_ATTEMPTS": "5",
+      "LOCKOUT_DURATION_MINUTES": "30",
+      "AUDIT_LOG_RETENTION_DAYS": "90",
+      "FILE_UPLOAD_MAX_SIZE": "10485760",
+      "ALLOWED_FILE_TYPES": "image/jpeg,image/png,image/gif,application/pdf,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    }
+  },
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "nodejs18.x",
+      "memory": 1024,
+      "maxDuration": 30
+    },
+    "api/routes/auth.js": {
+      "runtime": "nodejs18.x",
+      "memory": 512,
+      "maxDuration": 10
+    },
+    "api/routes/admin.js": {
+      "runtime": "nodejs18.x",
+      "memory": 1024,
+      "maxDuration": 30
+    },
+    "api/routes/enterprise.js": {
+      "runtime": "nodejs18.x",
+      "memory": 512,
+      "maxDuration": 15
+    },
+    "api/routes/mfa.js": {
+      "runtime": "nodejs18.x",
+      "memory": 512,
+      "maxDuration": 10
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-sessions",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/audit-log-cleanup",
+      "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/token-cleanup",
+      "schedule": "0 1 * * *"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/login",
+      "destination": "/auth/login",
+      "permanent": true
+    },
+    {
+      "source": "/signup",
+      "destination": "/auth/register",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/app/dashboard",
+      "permanent": false
+    }
+  ],
+  "trailingSlash": false,
+  "cleanUrls": true,
+  "framework": "vite",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "outputDirectory": "dist",
+  "public": false,
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "autoJobCancelation": true
+  }
 }

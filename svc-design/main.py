@@ -15,9 +15,11 @@ from fastapi.responses import JSONResponse, Response
 from loguru import logger
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 from pydantic import BaseModel
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.database import get_engine, get_async_engine, get_db
+from app.core.cache import initialize_design_cache, close_design_cache, check_design_cache_health
 from app.core.auth import get_current_user
 from app.api.v1 import design, layout, shading, bom
 from app.models import Base
@@ -33,6 +35,7 @@ class HealthResponse(BaseModel):
     service: str
     timestamp: str
     database: str
+    cache: str
 
 
 @asynccontextmanager
@@ -40,6 +43,13 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
     logger.info("Starting Design Service...")
+    
+    # Initialize Redis caching
+    try:
+        await initialize_design_cache()
+        logger.info("Redis caching initialized successfully")
+    except Exception as e:
+        logger.warning(f"Redis caching initialization failed: {e}")
     
     # Create database tables
     async_engine = get_async_engine()
@@ -51,6 +61,14 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down Design Service...")
+    
+    # Close Redis connections
+    try:
+        await close_design_cache()
+        logger.info("Redis caching closed successfully")
+    except Exception as e:
+        logger.warning(f"Redis caching shutdown failed: {e}")
+    
     async_engine = get_async_engine()
     await async_engine.dispose()
     logger.info("Design Service shutdown complete")
@@ -106,11 +124,12 @@ async def global_exception_handler(request, exc):
 
 
 @app.get("/health", response_model=HealthResponse)
+@app.get("/api/v1/health", response_model=HealthResponse)
 async def health_check(db = Depends(get_db)):
     """Health check endpoint"""
     try:
         # Test database connection
-        await db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         db_status = "healthy"
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
@@ -120,12 +139,23 @@ async def health_check(db = Depends(get_db)):
             detail="Database connection failed"
         )
     
+    # Test Redis cache connection
+    cache_status = "healthy"
+    try:
+        cache_health = await check_design_cache_health()
+        if not cache_health:
+            cache_status = "unhealthy"
+    except Exception as e:
+        logger.warning(f"Cache health check failed: {e}")
+        cache_status = "unavailable"
+    
     return HealthResponse(
         status="healthy",
         version="1.0.0",
         service="design",
         timestamp=str(__import__('datetime').datetime.now()),
-        database=db_status
+        database=db_status,
+        cache=cache_status
     )
 
 

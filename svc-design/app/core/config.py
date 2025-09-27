@@ -30,6 +30,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 15
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    
+    # Password settings
+    MIN_PASSWORD_LENGTH: int = 8
+    REQUIRE_UPPERCASE: bool = True
+    REQUIRE_LOWERCASE: bool = True
+    REQUIRE_DIGITS: bool = True
+    REQUIRE_SPECIAL_CHARS: bool = True
     
     # Database settings
     DATABASE_URL: str = "sqlite:///./nextgen_design.db"

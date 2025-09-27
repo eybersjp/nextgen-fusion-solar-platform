@@ -1,107 +1,26 @@
-"""Database models for the Design Service.
+"""Models package for the Design Service.
 
-This module exposes all database models for easy importing.
+This package contains all SQLAlchemy models for the application.
 """
 
-from .base import (
-    Base,
-    BaseModel,
-    TimestampMixin,
-    SoftDeleteMixin,
-    AuditMixin,
-    MetadataMixin,
-    StatusMixin,
-    QueryMixin,
-    FullBaseModel,
-    create_tables,
-    drop_tables,
-    get_table_names,
-    get_model_by_tablename,
-)
+from .base import BaseModel, TimestampMixin, SoftDeleteMixin, AuditMixin
+from .user import User, UserSession
+from .project import Project
+from .solar import SolarDesign, SolarComponent, DesignCalculation
 
-from .design import (
-    Design,
-    DesignVersion,
-    DesignApproval,
-    DesignComment,
-    DesignAttachment,
-    DesignTag,
-    DesignShare,
-)
-
-from .layout import (
-    Layout,
-    PanelArray,
-    Inverter,
-    ElectricalComponent,
-    CableRun,
-    LayoutOptimization,
-)
-
-from .shading import (
-    ShadingAnalysis,
-    Obstacle,
-    SolarPosition,
-    ShadingResult,
-    IrradianceMap,
-    SunPath,
-    ShadingReport,
-)
-
-from .bom import (
-    BillOfMaterials,
-    BOMItem,
-    Component,
-    Supplier,
-    PriceList,
-    PriceListItem,
-    BOMTemplate,
-)
+# Alias for backward compatibility
+Base = BaseModel
 
 __all__ = [
-    # Base models
-    "Base",
     "BaseModel",
+    "Base",
     "TimestampMixin",
     "SoftDeleteMixin",
     "AuditMixin",
-    "MetadataMixin",
-    "StatusMixin",
-    "QueryMixin",
-    "FullBaseModel",
-    "create_tables",
-    "drop_tables",
-    "get_table_names",
-    "get_model_by_tablename",
-    # Design models
-    "Design",
-    "DesignVersion",
-    "DesignApproval",
-    "DesignComment",
-    "DesignAttachment",
-    "DesignTag",
-    "DesignShare",
-    # Layout models
-    "Layout",
-    "PanelArray",
-    "Inverter",
-    "ElectricalComponent",
-    "CableRun",
-    "LayoutOptimization",
-    # Shading models
-    "ShadingAnalysis",
-    "Obstacle",
-    "SolarPosition",
-    "ShadingResult",
-    "IrradianceMap",
-    "SunPath",
-    "ShadingReport",
-    # BOM models
-    "BillOfMaterials",
-    "BOMItem",
-    "Component",
-    "Supplier",
-    "PriceList",
-    "PriceListItem",
-    "BOMTemplate",
+    "User",
+    "UserSession",
+    "Project",
+    "SolarDesign",
+    "SolarComponent",
+    "DesignCalculation",
 ]

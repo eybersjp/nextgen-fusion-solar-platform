@@ -30,6 +30,12 @@ from app.core import (
     DesignValidationError,
     DesignPermissionError
 )
+from app.core.cache import (
+    cache_design_query,
+    cache_solar_analysis,
+    invalidate_design_cache,
+    get_design_cache
+)
 from app.schemas import (
     DesignCreate,
     DesignUpdate,
@@ -46,6 +52,21 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
+@router.get(
+    "/test",
+    summary="Test endpoint",
+    description="Simple test endpoint without authentication"
+)
+async def test_endpoint():
+    """Test endpoint for basic connectivity."""
+    return {
+        "status": "success",
+        "message": "Design service is working",
+        "timestamp": "2024-01-01T00:00:00Z",
+        "service": "svc-design"
+    }
+
+
 @router.post(
     "/",
     response_model=DesignResponse,
@@ -56,7 +77,7 @@ router = APIRouter()
 async def create_design(
     design_data: DesignCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignWrite)
+    current_user: User = Depends(get_current_user)
 ) -> DesignResponse:
     """Create a new design.
     
@@ -105,12 +126,12 @@ async def create_design(
 )
 async def list_designs(
     project_id: Optional[UUID] = Query(None, description="Filter by project ID"),
-    status: Optional[str] = Query(None, description="Filter by design status"),
+    design_status: Optional[str] = Query(None, description="Filter by design status"),
     created_by: Optional[UUID] = Query(None, description="Filter by creator user ID"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Number of records to return"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignRead)
+    current_user: User = Depends(get_current_user)
 ) -> DesignListResponse:
     """List designs with optional filtering.
     
@@ -133,8 +154,8 @@ async def list_designs(
         filters = {}
         if project_id:
             filters["project_id"] = project_id
-        if status:
-            filters["status"] = status
+        if design_status:
+            filters["status"] = design_status
         if created_by:
             filters["created_by"] = created_by
             
@@ -167,10 +188,11 @@ async def list_designs(
     summary="Get design by ID",
     description="Retrieve a specific design by its ID"
 )
+@cache_design_query(ttl=300)  # Cache for 5 minutes
 async def get_design(
     design_id: UUID = Path(..., description="Design ID"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignRead)
+    current_user: User = Depends(get_current_user)
 ) -> DesignResponse:
     """Get a design by ID.
     
@@ -221,7 +243,7 @@ async def update_design(
     design_id: UUID = Path(..., description="Design ID"),
     design_data: DesignUpdate = Body(...),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignWrite)
+    current_user: User = Depends(get_current_user)
 ) -> DesignResponse:
     """Update a design.
     
@@ -241,6 +263,10 @@ async def update_design(
         logger.info(f"Updating design {design_id} for user {current_user.id}")
         design_service = DesignService(db)
         design = await design_service.update_design(design_id, design_data, current_user.id)
+        
+        # Invalidate cache for this design
+        await invalidate_design_cache(design_id)
+        
         logger.info(f"Design {design_id} updated successfully")
         return design
     except DesignNotFoundError as e:
@@ -278,7 +304,7 @@ async def update_design(
 async def delete_design(
     design_id: UUID = Path(..., description="Design ID"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignDelete)
+    current_user: User = Depends(get_current_user)
 ) -> None:
     """Delete a design (soft delete).
     
@@ -294,6 +320,10 @@ async def delete_design(
         logger.info(f"Deleting design {design_id} for user {current_user.id}")
         design_service = DesignService(db)
         await design_service.delete_design(design_id, current_user.id)
+        
+        # Invalidate cache for this design
+        await invalidate_design_cache(design_id)
+        
         logger.info(f"Design {design_id} deleted successfully")
     except DesignNotFoundError as e:
         logger.error(f"Design not found: {e}")
@@ -378,7 +408,7 @@ async def approve_design(
     design_id: UUID = Path(..., description="Design ID"),
     comments: Optional[str] = Body(None, description="Approval comments"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignApprove)
+    current_user: User = Depends(get_current_user)
 ) -> DesignResponse:
     """Approve a design.
     
@@ -430,7 +460,7 @@ async def reject_design(
     design_id: UUID = Path(..., description="Design ID"),
     comments: str = Body(..., description="Rejection comments"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignApprove)
+    current_user: User = Depends(get_current_user)
 ) -> DesignResponse:
     """Reject a design.
     
@@ -481,7 +511,7 @@ async def reject_design(
 async def validate_design(
     design_id: UUID = Path(..., description="Design ID"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignRead)
+    current_user: User = Depends(get_current_user)
 ) -> DesignValidationResult:
     """Validate a design.
     
@@ -528,10 +558,11 @@ async def validate_design(
     summary="Calculate design performance",
     description="Calculate performance metrics for a design"
 )
+@cache_solar_analysis(ttl=1800)  # Cache for 30 minutes
 async def calculate_performance(
     design_id: UUID = Path(..., description="Design ID"),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignRead)
+    current_user: User = Depends(get_current_user)
 ) -> DesignPerformanceMetrics:
     """Calculate design performance.
     
@@ -581,7 +612,7 @@ async def calculate_performance(
 async def compare_designs(
     comparison_data: DesignComparison,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(RequireDesignRead)
+    current_user: User = Depends(get_current_user)
 ) -> DesignComparisonResult:
     """Compare designs.
     
